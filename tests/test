@@ -1,0 +1,85 @@
+import pytest
+import selenium
+from selenium.webdriver.support.ui import WebDriverWait
+
+
+wait = WebDriverWait(pytest.driver, 5)
+
+
+# 1. Проверка присутствия питомцев (сравнение с блоком статистики пользователя)
+def test_all_pets_are_present(go_to_the_authorization_page):
+    pytest.driver.implicitly_wait(5)  # неявное ожидание до 5 сек
+    # Получение данных из блока статистики пользователя
+    user_statistics = pytest.driver.find_elements_by_css_selector('div[class=".col-sm-4 left"]')
+
+    # Разделение для выделения значений
+    separation_of_user_statistics_part1 = user_statistics.text.split(" ")[0]
+    separation_of_user_statistics_part2 = separation_of_user_statistics_part1.split("\n")
+    the_number_of_my_pets = int(separation_of_user_statistics_part2[0])
+
+    # Проверка утверждения, что на странице пользователя присутствуют все питомцы
+    assert the_number_of_my_pets[0] == str(len(user_statistics)-1)
+    assert pytest.driver.find_element_by_tag_name('h2').text == "Bart"  # Проверка имени пользователя
+
+
+# 2. Проверка, что хотя бы у половины питомцев есть фото
+def test_at_least_half_of_the_pets_have_photos(go_to_the_authorization_page):
+    pytest.driver.implicitly_wait(5)  # неявное ожидание до 5 сек
+    # Поиск и подсчет карточек питомцев
+    pets_cards = pytest.driver.find_elements_by_tag_name('tr')
+    pytest.driver.implicitly_wait(5)  # неявное ожидание до 5 сек
+    pets_images = pytest.driver.find_elements_by_css_selector('#all_my_pets img')
+    # Счетчик картинок
+    pets_images_counter = 0
+    for i in pets_images:
+        # Проверка аттрибута объекта: есть ли там картинка
+        if i.get_attribute('src') != '':
+            pets_images_counter += 1
+    # Сравнение количество картинок с количеством питомцев
+    assert (len(pets_cards)-1)/2 <= pets_images_counter
+
+
+# 3. Проверка наличия у всех питомцев имени, возраста и породы
+def test_all_pets_have_a_name_age_breed(go_to_the_authorization_page):
+    pytest.driver.implicitly_wait(10)  # неявное ожидание до 10 сек
+    # Проверка пустых полей в данных питомцев
+    pet_data = pytest.driver.find_elements_by_tag_name('td')
+    for i in pet_data:
+        assert i.text != ''
+
+
+# 4. Проверка у всех питомцев разные имена
+def test_all_pets_have_different_names(go_to_the_authorization_page):
+    pytest.driver.implicitly_wait(10)  # неявное ожидание до 10 сек
+    pets_cards = pytest.driver.find_elements_by_css_selector('.table.table-hover tbody tr')
+    pets_name = []
+    for i in range(len(pets_cards)):
+        pets_data = pets_cards[i].text.replace('\n', '').replace('×', '')
+        split_pets_data = pets_data.split(' ')
+        pets_name.append(split_pets_data[0])
+    r = 0
+    for i in range(len(pets_name)):
+        if pets_name.count(pets_name[i]) > 1:
+            r += 1
+        assert r == 0
+
+
+# 5. Проверка, что в списке нет повторяющихся питомцев
+def test_there_are_no_duplicate_pets_in_the_list(go_to_the_authorization_page):
+    pytest.driver.implicitly_wait(10)  # неявное ожидание до 10 сек
+    pets_cards = pytest.driver.find_elements_by_css_selector('.table.table-hover tbody tr')
+    list_data = []
+    for i in range(len(pets_cards)):
+        pets_data = pets_cards[i].text.replace('\n', '').replace('×', '')
+        split_pets_data = pets_data.split(' ')
+        list_data.append(split_pets_data)
+    line = ''
+    for i in list_data:
+        line += ''.join(i)
+        line += ' '
+    list_line = line.split(' ')
+    set_list_line = set(list_line)
+    a = len(list_line)
+    b = len(set_list_line)
+    result = a - b
+    assert result == 0
